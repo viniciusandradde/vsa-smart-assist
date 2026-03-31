@@ -36,10 +36,15 @@ const NewTicket = () => {
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
-      const result = await submitTicket({
-        ...data,
+      const payload = {
+        nome: data.nome,
+        email: data.email,
+        setor: data.setor,
+        tipo: data.tipo,
+        descricao: data.descricao,
         data_abertura: new Date().toISOString(),
-      });
+      };
+      const result = await submitTicket(payload);
       setSuccess({ id: result?.id });
       form.reset();
     } catch {
