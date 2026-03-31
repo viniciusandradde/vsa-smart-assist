@@ -12,10 +12,11 @@ import { submitTicket } from "@/lib/api";
 import Layout from "@/components/Layout";
 
 const schema = z.object({
+  titulo: z.string().trim().min(5, "Título é obrigatório (mínimo 5 caracteres)").max(150),
   nome: z.string().trim().min(1, "Nome é obrigatório").max(100),
-  email: z.string().trim().email("Email inválido").max(255),
-  setor: z.string().min(1, "Selecione um setor"),
-  tipo: z.string().min(1, "Selecione o tipo"),
+  email: z.string().trim().min(1, "E-mail ou ramal é obrigatório").max(255),
+  setor: z.string().optional(),
+  tipo: z.string().optional(),
   descricao: z.string().trim().min(10, "Mínimo de 10 caracteres").max(2000),
 });
 
@@ -30,13 +31,16 @@ const NewTicket = () => {
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", email: "", setor: "", tipo: "", descricao: "" },
+    defaultValues: { titulo: "", nome: "", email: "", setor: "", tipo: "", descricao: "" },
   });
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
+      const generatedId = `VSA-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
       const payload = {
+        id: generatedId,
+        titulo: data.titulo,
         nome: data.nome,
         email: data.email,
         setor: data.setor,
@@ -44,8 +48,11 @@ const NewTicket = () => {
         descricao: data.descricao,
         data_abertura: new Date().toISOString(),
       };
-      const result = await submitTicket(payload);
-      setSuccess({ id: result?.id });
+      
+      // Wait for fetch, in max 2 seconds webhook happens
+      await submitTicket(payload);
+      
+      setSuccess({ id: generatedId });
       form.reset();
     } catch {
       setSuccess(null);
@@ -78,6 +85,14 @@ const NewTicket = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <FormField control={form.control} name="titulo" render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>Título do Problema</FormLabel>
+                  <FormControl><Input placeholder="Ex: Sistema ERP fora do ar" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
               <FormField control={form.control} name="nome" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
@@ -88,8 +103,8 @@ const NewTicket = () => {
 
               <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl><Input type="email" placeholder="email@empresa.com" {...field} /></FormControl>
+                  <FormLabel>Email ou Ramal</FormLabel>
+                  <FormControl><Input placeholder="email@empresa.com ou ramal" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />

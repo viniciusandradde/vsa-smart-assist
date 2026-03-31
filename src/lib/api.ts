@@ -1,23 +1,36 @@
-const WEBHOOK_BASE = "https://SEU-N8N/webhook";
+const WEBHOOK_BASE = "https://n8n.vsatecnologia.com.br/webhook-test";
+const LOCAL_STORAGE_KEY = "vsa_tickets";
 
 export interface TicketPayload {
+  id?: string;
+  titulo: string;
   nome: string;
   email: string;
-  setor: string;
-  tipo: string;
+  setor?: string;
+  tipo?: string;
   descricao: string;
   data_abertura: string;
 }
 
+export interface TicketResponse {
+  autor: string;
+  texto: string;
+  data: string;
+}
+
 export interface DashboardTicket {
   id: string;
+  titulo: string;
   nome: string;
   setor: string;
   tipo: string;
-  prioridade: "ALTA" | "MÉDIA" | "BAIXA";
+  urgencia: "CRÍTICO" | "ALTO" | "NORMAL";
   responsavel: string;
   status: string;
   data: string;
+  descricao?: string;
+  motivo?: string;
+  respostas?: TicketResponse[];
 }
 
 export async function submitTicket(payload: TicketPayload) {
@@ -27,11 +40,86 @@ export async function submitTicket(payload: TicketPayload) {
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error("Erro ao enviar chamado");
-  return res.json();
+  
+  const data = await res.json();
+  
+  // Persistir no localStorage do navegador para exibição no Dashboard
+  const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
+  const tickets: DashboardTicket[] = existing ? JSON.parse(existing) : [];
+  
+  const newTicket: DashboardTicket = {
+    id: data.id || payload.id || `VSA-${Date.now()}`,
+    titulo: data.titulo || payload.titulo,
+    nome: data.nome || payload.nome,
+    setor: payload.setor || "Geral",
+    tipo: data.classificacao?.categoria || "Indefinido",
+    urgencia: data.classificacao?.urgencia || "NORMAL",
+    responsavel: data.classificacao?.responsavel || "Atendimento VSA",
+    status: data.status || "Aberto",
+    data: new Date().toISOString().split("T")[0],
+    descricao: payload.descricao,
+    motivo: data.classificacao?.motivo,
+    respostas: [],
+  };
+  
+  tickets.unshift(newTicket);
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tickets));
+  
+  return data;
 }
 
 export async function fetchDashboard(): Promise<DashboardTicket[]> {
-  const res = await fetch(`${WEBHOOK_BASE}/vsa-smart-help-dashboard`);
-  if (!res.ok) throw new Error("Erro ao buscar dados");
-  return res.json();
+  // Ler do localStorage em vez de fazer fetch num webhook de dashboard fixo
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
+      resolve(existing ? JSON.parse(existing) : []);
+    }, 400); // delay artificial suave
+  });
+}
+
+export async function updateTicketStatus(id: string, novoStatus: string): Promise<DashboardTicket> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!existing) return reject(new Error("Nenhum chamado encontrado"));
+      
+      const tickets: DashboardTicket[] = JSON.parse(existing);
+      const index = tickets.findIndex(t => t.id === id);
+      
+      if (index === -1) return reject(new Error("Chamado não encontrado"));
+      
+      tickets[index].status = novoStatus;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tickets));
+      
+      resolve(tickets[index]);
+    }, 300);
+  });
+}
+
+export async function addTicketResponse(id: string, texto: string, autor = "Suporte Local"): Promise<DashboardTicket> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!existing) return reject(new Error("Nenhum chamado encontrado"));
+      
+      const tickets: DashboardTicket[] = JSON.parse(existing);
+      const index = tickets.findIndex(t => t.id === id);
+      
+      if (index === -1) return reject(new Error("Chamado não encontrado"));
+      
+      if (!tickets[index].respostas) {
+        tickets[index].respostas = [];
+      }
+      
+      tickets[index].respostas.push({
+        autor,
+        texto,
+        data: new Date().toISOString()
+      });
+      
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tickets));
+      resolve(tickets[index]);
+    }, 300);
+  });
 }
