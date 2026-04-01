@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { TicketPlus, LayoutDashboard } from "lucide-react";
+import { TicketPlus, LayoutDashboard, Settings as SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -8,6 +8,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const navItems = [
     { to: "/", label: "Novo Chamado", icon: TicketPlus },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/settings", label: "Configurações", icon: SettingsIcon },
   ];
 
   return (

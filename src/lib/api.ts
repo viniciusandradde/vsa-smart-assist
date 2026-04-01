@@ -1,5 +1,6 @@
 const WEBHOOK_BASE = "https://n8n.vsatecnologia.com.br/webhook-test";
 const LOCAL_STORAGE_KEY = "vsa_tickets";
+import { notifyTelegram } from "./webhook";
 
 export interface TicketPayload {
   id?: string;
@@ -65,6 +66,9 @@ export async function submitTicket(payload: TicketPayload) {
   tickets.unshift(newTicket);
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tickets));
   
+  // Enviar notificação para o Telegram
+  await notifyTelegram(newTicket, "NEW");
+  
   return data;
 }
 
@@ -92,7 +96,16 @@ export async function updateTicketStatus(id: string, novoStatus: string): Promis
       tickets[index].status = novoStatus;
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tickets));
       
-      resolve(tickets[index]);
+      const updatedTicket = tickets[index];
+
+      // Enviar notificação para o Telegram se for para EM ATENDIMENTO ou RESOLVIDO/FECHADO
+      if (novoStatus === "Em Atendimento") {
+        notifyTelegram(updatedTicket, "IN_PROGRESS");
+      } else if (novoStatus === "Resolvido" || novoStatus === "Fechado") {
+        notifyTelegram(updatedTicket, "RESOLVED");
+      }
+
+      resolve(updatedTicket);
     }, 300);
   });
 }
