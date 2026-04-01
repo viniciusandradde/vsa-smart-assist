@@ -5,13 +5,22 @@ const BOT_TOKEN = "8626578306:AAGWYcukPEJS2HwMggAYmw7sUAf5P2RbYDo";
 export interface WebhookSettings {
   telegramEnabled: boolean;
   telegramChatId: string;
+  apiWebhookBase: string;
 }
 
+const DEFAULT_WEBHOOK = "https://n8n.vsatecnologia.com.br/webhook-test";
+
 export function getWebhookSettings(): WebhookSettings {
-  if (typeof window === "undefined") return { telegramEnabled: false, telegramChatId: "" };
+  if (typeof window === "undefined") return { telegramEnabled: false, telegramChatId: "", apiWebhookBase: DEFAULT_WEBHOOK };
   const str = localStorage.getItem("vsa_webhook_settings");
-  if (str) return JSON.parse(str);
-  return { telegramEnabled: false, telegramChatId: "" };
+  if (str) {
+    const settings = JSON.parse(str);
+    return {
+      ...settings,
+      apiWebhookBase: settings.apiWebhookBase || DEFAULT_WEBHOOK
+    };
+  }
+  return { telegramEnabled: false, telegramChatId: "", apiWebhookBase: DEFAULT_WEBHOOK };
 }
 
 export function saveWebhookSettings(settings: WebhookSettings) {

@@ -1,6 +1,5 @@
-const WEBHOOK_BASE = "https://n8n.vsatecnologia.com.br/webhook-test";
 const LOCAL_STORAGE_KEY = "vsa_tickets";
-import { notifyTelegram } from "./webhook";
+import { notifyTelegram, getWebhookSettings } from "./webhook";
 
 export interface TicketPayload {
   id?: string;
@@ -35,7 +34,8 @@ export interface DashboardTicket {
 }
 
 export async function submitTicket(payload: TicketPayload) {
-  const res = await fetch(`${WEBHOOK_BASE}/vsa-smart-help`, {
+  const { apiWebhookBase } = getWebhookSettings();
+  const res = await fetch(`${apiWebhookBase}/vsa-smart-help`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

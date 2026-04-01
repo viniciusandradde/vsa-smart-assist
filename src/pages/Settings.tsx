@@ -11,6 +11,7 @@ const Settings = () => {
   const [settings, setSettings] = useState<WebhookSettings>({
     telegramEnabled: false,
     telegramChatId: "",
+    apiWebhookBase: "",
   });
   const [isTesting, setIsTesting] = useState(false);
 
@@ -53,12 +54,29 @@ const Settings = () => {
           <div>
             <h2 className="text-2xl font-bold text-foreground">Configurações de Integração</h2>
             <p className="text-sm text-muted-foreground">
-              Configure webhooks e integrações externas (Telegram).
+              Configure webhooks e integrações externas.
             </p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-8">
+          {/* API Webhook Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b border-border pb-2">Sistema (n8n API)</h3>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground block">URL Base do Webhook</label>
+              <Input 
+                placeholder="https://sua-instancia-n8n.com/webhook-test"
+                value={settings.apiWebhookBase}
+                onChange={(e) => setSettings({ ...settings, apiWebhookBase: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Esta é a URL base usada para processar a triagem de novos chamados. 
+                <br />Padrao: <code>https://n8n.vsatecnologia.com.br/webhook-test</code>
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b border-border pb-2">Telegram</h3>
             
