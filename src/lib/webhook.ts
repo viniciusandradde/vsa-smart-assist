@@ -8,7 +8,7 @@ export interface WebhookSettings {
   apiWebhookBase: string;
 }
 
-const DEFAULT_WEBHOOK = "https://n8n.vsatecnologia.com.br/webhook-test";
+const DEFAULT_WEBHOOK = "https://n8n.vsatecnologia.com.br/webhook";
 
 export function getWebhookSettings(): WebhookSettings {
   if (typeof window === "undefined") return { telegramEnabled: false, telegramChatId: "", apiWebhookBase: DEFAULT_WEBHOOK };

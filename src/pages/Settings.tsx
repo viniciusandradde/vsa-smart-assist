@@ -105,8 +105,8 @@ const Settings = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Esta é a URL base usada para processar a triagem de novos chamados. 
-                  <br />Padrao: <code>https://n8n.vsatecnologia.com.br/webhook-test</code>
+                  Esta é a URL base usada para processar a triagem de novos chamados.
+                  <br />Padrao: <code>https://n8n.vsatecnologia.com.br/webhook</code>
                 </p>
               </div>
             </div>
