@@ -1,15 +1,35 @@
-import { Link, useLocation } from "react-router-dom";
-import { TicketPlus, LayoutDashboard, Settings as SettingsIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { TicketPlus, LayoutDashboard, Settings as SettingsIcon, LogOut, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   const navItems = [
     { to: "/", label: "Novo Chamado", icon: TicketPlus },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/settings", label: "Configurações", icon: SettingsIcon },
   ];
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      toast.success("Sessão encerrada.");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error("Erro ao sair. Tente novamente.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -41,6 +61,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <span className="hidden sm:inline">{label}</span>
               </Link>
             ))}
+
+            {/* Divider + Logout */}
+            <div className="ml-2 pl-2 border-l border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {signingOut
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <LogOut className="w-4 h-4" />
+                }
+                <span className="hidden sm:inline ml-1.5">Sair</span>
+              </Button>
+            </div>
           </nav>
         </div>
       </header>
