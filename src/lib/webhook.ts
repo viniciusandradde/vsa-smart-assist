@@ -50,3 +50,28 @@ export async function notifyTelegram(ticket: DashboardTicket, type: "NEW" | "IN_
     console.error("Erro ao enviar notificação Telegram:", error);
   }
 }
+
+export async function sendTestTelegram() {
+  const config = getWebhookSettings();
+  if (!config.telegramChatId) throw new Error("Chat ID não configurado");
+
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const msg = `📬 *TESTE DE CONEXÃO*\n\nSeu bot do VSA Smart Help está configurado corretamente para este Chat ID!`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: config.telegramChatId,
+      text: msg,
+      parse_mode: "Markdown",
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.description || "Erro ao enviar teste para o Telegram");
+  }
+
+  return true;
+}

@@ -4,14 +4,15 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Save, Webhook } from "lucide-react";
-import { getWebhookSettings, saveWebhookSettings, type WebhookSettings } from "@/lib/webhook";
+import { Save, Webhook, Send } from "lucide-react";
+import { getWebhookSettings, saveWebhookSettings, type WebhookSettings, sendTestTelegram } from "@/lib/webhook";
 
 const Settings = () => {
   const [settings, setSettings] = useState<WebhookSettings>({
     telegramEnabled: false,
     telegramChatId: "",
   });
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     setSettings(getWebhookSettings());
@@ -20,6 +21,26 @@ const Settings = () => {
   const handleSave = () => {
     saveWebhookSettings(settings);
     toast.success("Configurações salvas com sucesso!");
+  };
+
+  const handleTest = async () => {
+    if (!settings.telegramChatId) {
+      toast.error("Por favor, preencha o Chat ID antes de testar.");
+      return;
+    }
+
+    setIsTesting(true);
+    try {
+      // Salva antes de testar para garantir que o ID atual seja usado
+      saveWebhookSettings(settings);
+      await sendTestTelegram();
+      toast.success("Mensagem de teste enviada com sucesso!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Falha ao enviar mensagem de teste.");
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   return (
@@ -71,7 +92,16 @@ const Settings = () => {
             )}
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-end">
+            <Button 
+              variant="secondary" 
+              onClick={handleTest} 
+              disabled={isTesting || !settings.telegramEnabled}
+              className="w-full sm:w-auto"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {isTesting ? "Testando..." : "Testar Conexão"}
+            </Button>
             <Button onClick={handleSave} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
               Salvar Configurações
