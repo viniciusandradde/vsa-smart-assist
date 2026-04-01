@@ -136,3 +136,28 @@ export async function addTicketResponse(id: string, texto: string, autor = "Supo
     }, 300);
   });
 }
+
+export async function sendTestApiWebhook() {
+  const { apiWebhookBase } = getWebhookSettings();
+  const testPayload = {
+    id: `TEST-${Date.now()}`,
+    titulo: "Chamado de Teste (Conexão)",
+    nome: "Teste de Sistema",
+    email: "teste@vsa.com.br",
+    setor: "TI",
+    descricao: "Este é um chamado de teste enviado para verificar a conexão do webhook.",
+    data_abertura: new Date().toISOString()
+  };
+
+  const res = await fetch(`${apiWebhookBase}/vsa-smart-help`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(testPayload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erro na conexão HTTP: ${res.status}`);
+  }
+
+  return res.json();
+}

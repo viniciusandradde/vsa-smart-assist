@@ -4,8 +4,10 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Save, Webhook, Send } from "lucide-react";
+import { Save, Webhook, Send, Activity } from "lucide-react";
 import { getWebhookSettings, saveWebhookSettings, type WebhookSettings, sendTestTelegram } from "@/lib/webhook";
+import { sendTestApiWebhook } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const Settings = () => {
   const [settings, setSettings] = useState<WebhookSettings>({
@@ -13,7 +15,8 @@ const Settings = () => {
     telegramChatId: "",
     apiWebhookBase: "",
   });
-  const [isTesting, setIsTesting] = useState(false);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isTestingApi, setIsTestingApi] = useState(false);
 
   useEffect(() => {
     setSettings(getWebhookSettings());
@@ -24,15 +27,14 @@ const Settings = () => {
     toast.success("Configurações salvas com sucesso!");
   };
 
-  const handleTest = async () => {
+  const handleTestTelegram = async () => {
     if (!settings.telegramChatId) {
       toast.error("Por favor, preencha o Chat ID antes de testar.");
       return;
     }
 
-    setIsTesting(true);
+    setIsTestingTelegram(true);
     try {
-      // Salva antes de testar para garantir que o ID atual seja usado
       saveWebhookSettings(settings);
       await sendTestTelegram();
       toast.success("Mensagem de teste enviada com sucesso!");
@@ -40,7 +42,26 @@ const Settings = () => {
       console.error(error);
       toast.error(error.message || "Falha ao enviar mensagem de teste.");
     } finally {
-      setIsTesting(false);
+      setIsTestingTelegram(false);
+    }
+  };
+
+  const handleTestApi = async () => {
+    if (!settings.apiWebhookBase) {
+      toast.error("Por favor, preencha a URL do Webhook antes de testar.");
+      return;
+    }
+
+    setIsTestingApi(true);
+    try {
+      saveWebhookSettings(settings);
+      await sendTestApiWebhook();
+      toast.success("Webhook disparado com sucesso! Verifique seu n8n.");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Falha ao disparar webhook de teste.");
+    } finally {
+      setIsTestingApi(false);
     }
   };
 
@@ -63,17 +84,31 @@ const Settings = () => {
           {/* API Webhook Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b border-border pb-2">Sistema (n8n API)</h3>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground block">URL Base do Webhook</label>
-              <Input 
-                placeholder="https://sua-instancia-n8n.com/webhook-test"
-                value={settings.apiWebhookBase}
-                onChange={(e) => setSettings({ ...settings, apiWebhookBase: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Esta é a URL base usada para processar a triagem de novos chamados. 
-                <br />Padrao: <code>https://n8n.vsatecnologia.com.br/webhook-test</code>
-              </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground block">URL Base do Webhook</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input 
+                    placeholder="https://sua-instancia-n8n.com/webhook-test"
+                    value={settings.apiWebhookBase}
+                    onChange={(e) => setSettings({ ...settings, apiWebhookBase: e.target.value })}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleTestApi}
+                    disabled={isTestingApi}
+                    className="shrink-0"
+                  >
+                    <Activity className={cn("w-4 h-4 mr-2", isTestingApi && "animate-spin")} />
+                    {isTestingApi ? "Testando..." : "Testar Webhook"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Esta é a URL base usada para processar a triagem de novos chamados. 
+                  <br />Padrao: <code>https://n8n.vsatecnologia.com.br/webhook-test</code>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -113,12 +148,12 @@ const Settings = () => {
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-end">
             <Button 
               variant="secondary" 
-              onClick={handleTest} 
-              disabled={isTesting || !settings.telegramEnabled}
+              onClick={handleTestTelegram} 
+              disabled={isTestingTelegram || !settings.telegramEnabled}
               className="w-full sm:w-auto"
             >
               <Send className="w-4 h-4 mr-2" />
-              {isTesting ? "Testando..." : "Testar Conexão"}
+              {isTestingTelegram ? "Testando..." : "Testar Telegram"}
             </Button>
             <Button onClick={handleSave} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
