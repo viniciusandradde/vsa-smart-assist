@@ -7,9 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 *.docx
-*.md
-*.json
 
+# But allow important config and documentation
+!CLAUDE.md
+!SKILL.md
+!package.json
+!tsconfig.json
+!vite.config.ts
+!*.config.js
 
 node_modules
 dist

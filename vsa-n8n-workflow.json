@@ -1,0 +1,124 @@
+{
+  "name": "VSA Smart Help",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vsa-smart-help",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook Chamado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"ID: \" + $json.body.id + \"\\nTítulo: \" + $json.body.titulo + \"\\nNome: \" + $json.body.nome + \"\\nEmail: \" + $json.body.email + \"\\nSetor: \" + $json.body.setor + \"\\nTipo (Usuário): \" + $json.body.tipo + \"\\nDescrição: \" + $json.body.descricao }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "systemMessage",
+              "message": "Você é o Agente Dispatcher de TI da VSA Tecnologia.\nSua única função é ler o Título e a Descrição de um chamado técnico e classificá-lo, retornando estritamente um objeto JSON válido, sem nenhum texto adicional, backticks ou comentários.\n\nRegras de Negócio:\n1. URGÊNCIA:\n- CRÍTICO: Sistema principal fora do ar, risco de vazamento de dados, impacto em toda a empresa. (SLA: 2h)\n- ALTO: Falha parcial, lentidão grave, impacto em um setor inteiro. (SLA: 6h)\n- NORMAL: Falha individual (ex: teclado, reset de senha, equipamento isolado), dúvidas de rotina. (SLA: 24h)\n\n2. CATEGORIA E RESPONSÁVEL:\n- internet, roteador, Wi-Fi -> categoria: redes | responsavel: Equipe de Redes\n- computador, impressora, hardware -> categoria: infraestrutura | responsavel: Suporte N1\n- ERP, software, banco de dados, relatórios -> categoria: sistemas | responsavel: DevTeam\n- phishing, vírus, antivírus -> categoria: seguranca | responsavel: InfoSec\n- exclusão de dados, LGPD -> categoria: lgpd | responsavel: DPO\n\nResponda APENAS com este formato exato:\n{\"urgencia\":\"CRÍTICO|ALTO|NORMAL\",\"categoria\":\"redes|infraestrutura|sistemas|seguranca|lgpd\",\"motivo\":\"máximo 12 palavras detalhando o que houve\",\"responsavel\":\"Nome da Equipe Acima\",\"prazo_horas\":24}"
+            },
+            {
+              "type": "userMessage",
+              "message": "={{ \"ID: \" + $json.body.id + \"\\nTítulo: \" + $json.body.titulo + \"\\nNome: \" + $json.body.nome + \"\\nEmail: \" + $json.body.email + \"\\nSetor: \" + $json.body.setor + \"\\nTipo (Usuário): \" + $json.body.tipo + \"\\nDescrição: \" + $json.body.descricao }}"
+            }
+          ]
+        }
+      },
+      "id": "node-chain",
+      "name": "Classificador LLM",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "thudm/glm-z1-32b:free",
+        "options": {
+          "baseURL": "https://openrouter.ai/api/v1",
+          "maxTokens": 200,
+          "temperature": 0
+        }
+      },
+      "id": "node-llm",
+      "name": "OpenRouter GLM Free",
+      "type": "@n8n/n8n-nodes-langchain.lmOpenAi",
+      "typeVersion": 1.2,
+      "position": [360, 520],
+      "credentials": {
+        "openAiApi": {
+          "id": "openrouter-cred",
+          "name": "OpenRouter (OpenAI-compatible)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "vsa-smart-assist-memory",
+        "contextWindowLength": 10
+      },
+      "id": "node-memory",
+      "name": "Memoria Compartilhada",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [580, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.text || '';\nlet classificacao;\ntry {\n  const match = output.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    classificacao = JSON.parse(match[0]);\n  } else {\n    throw new Error('Sem JSON');\n  }\n} catch(e) {\n  classificacao = {\n    urgencia: 'NORMAL',\n    categoria: 'sistemas',\n    motivo: 'Erro de parse: ' + e.message,\n    responsavel: 'Sistemas',\n    prazo_horas: 24\n  };\n}\nconst wh = $('Webhook Chamado').item.json.body || {};\nreturn {\n  json: {\n    success: true,\n    id: wh.id || 'VSA-' + Date.now(),\n    titulo: wh.titulo,\n    nome: wh.nome,\n    email: wh.email,\n    status: 'ABERTO',\n    classificacao\n  }\n};"
+      },
+      "id": "node-parse",
+      "name": "Processar Classificacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "Retornar ao Frontend",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Chamado": {
+      "main": [[{ "node": "Classificador LLM", "type": "main", "index": 0 }]]
+    },
+    "OpenRouter GLM Free": {
+      "ai_languageModel": [[{ "node": "Classificador LLM", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Memoria Compartilhada": {
+      "ai_memory": [[{ "node": "Classificador LLM", "type": "ai_memory", "index": 0 }]]
+    },
+    "Classificador LLM": {
+      "main": [[{ "node": "Processar Classificacao", "type": "main", "index": 0 }]]
+    },
+    "Processar Classificacao": {
+      "main": [[{ "node": "Retornar ao Frontend", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
